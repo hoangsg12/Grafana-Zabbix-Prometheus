@@ -1,0 +1,69 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+
+  # Tự giám sát Prometheus
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Tự giám sát SNMP exporter (health)
+  - job_name: "snmp_exporter"
+    static_configs:
+      - targets: ["snmp_exporter:9116"]
+
+  # ---------------- MIKROTIK ----------------
+  # Sửa IP trong danh sách targets thành IP thật của các router Mikrotik
+  - job_name: "snmp_mikrotik"
+    static_configs:
+      - targets:
+          - 172.16.12.1
+    metrics_path: /snmp
+    params:
+      module: [mikrotik]
+      auth: [public_v2]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: snmp_exporter:9116
+
+  # ---------------- CISCO ----------------
+  # Sửa IP thành IP thật của switch/router Cisco
+  - job_name: "snmp_cisco"
+    static_configs:
+      - targets:
+          - 172.16.13.1
+    metrics_path: /snmp
+    params:
+      module: [cisco]
+      auth: [public_v2]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: snmp_exporter:9116
+
+  # ---------------- FORTINET ----------------
+  # Sửa IP thành IP thật của firewall Fortinet (FortiGate)
+  - job_name: "snmp_fortinet"
+    static_configs:
+      - targets:
+          - 192.168.3.1
+    metrics_path: /snmp
+    params:
+      module: [fortinet]
+      auth: [public_v2]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: snmp_exporter:9116
