@@ -1,0 +1,9 @@
+groups:
+  - name: mikrotik-aliases
+    interval: 30s
+    rules:
+      # "sysIdentity" không tồn tại trong SNMP/MIB nào (kể cả MikroTik lẫn chuẩn IETF).
+      # RouterOS thực chất trả "System Identity" của thiết bị qua object chuẩn sysName.
+      # Dashboard cộng đồng bạn dùng lại mong đợi tên "sysIdentity", nên tạo alias tại đây.
+      - record: sysIdentity
+        expr: sysName
