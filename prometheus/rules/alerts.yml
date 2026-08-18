@@ -1,0 +1,54 @@
+groups:
+  - name: network-devices
+    rules:
+
+      # Thiết bị SNMP không phản hồi (mất kết nối/mất điện/đứt mạng quản lý)
+      - alert: SNMPDeviceDown
+        expr: up{job=~"snmp_.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Thiet bi {{ $labels.instance }} khong phan hoi SNMP"
+          description: "Job {{ $labels.job }} - target {{ $labels.instance }} down hon 2 phut."
+
+      # Interface bị rút dây / đứt cáp: cổng đang BẬT (admin enable) nhưng mất link.
+      # Không báo với cổng bạn cố tình tắt (admin down) - tránh báo động giả.
+      - alert: InterfaceDown
+        expr: ifOperStatus == 2 and on(instance, ifIndex) ifAdminStatus == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Mat lien ket (rut day/dut cap) tren {{ $labels.instance }}"
+          description: "{{ $labels.ifDescr }} (ifIndex={{ $labels.ifIndex }}) tren {{ $labels.instance }} dang bat nhung mat link - kiem tra day cap/thiet bi dau kia."
+
+      # CPU MikroTik cao
+      - alert: MikrotikHighCPU
+        expr: hrProcessorLoad > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU cao tren {{ $labels.instance }}"
+          description: "CPU load {{ $value }} phan tram trong hon 5 phut."
+
+      # Nhiệt độ CPU MikroTik cao
+      - alert: MikrotikHighTemperature
+        expr: mtxrHlCpuTemperature > 70
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Nhiet do CPU cao tren {{ $labels.instance }}"
+          description: "Nhiet do hien tai {{ $value }} do C."
+
+      # Dung lượng lưu trữ MikroTik gần đầy
+      - alert: MikrotikStorageAlmostFull
+        expr: (hrStorageUsed / hrStorageSize) * 100 > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Bo nho/Disk gan day tren {{ $labels.instance }}"
+          description: "Da dung gan het dung luong luu tru."
