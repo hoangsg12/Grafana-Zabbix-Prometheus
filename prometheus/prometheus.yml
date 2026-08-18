@@ -1,0 +1,93 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  external_labels:
+    site: 'BN'          # Label giúp phân biệt chi nhánh
+    cluster: 'site-1'
+
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+
+  # Tự giám sát Prometheus
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Tự giám sát SNMP exporter (health)
+  - job_name: "snmp_exporter"
+    static_configs:
+      - targets: ["snmp_exporter:9116"]
+
+  # Tự giám sát Alertmanager
+  - job_name: "alertmanager"
+    static_configs:
+      - targets: ["alertmanager:9093"]
+
+  # ---------------- MIKROTIK ----------------
+  # Sửa IP trong danh sách targets thành IP thật của các router Mikrotik
+  - job_name: "snmp_mikrotik"
+    static_configs:
+      - targets:
+          - 10.0.97.1
+    metrics_path: /snmp
+    params:
+      module: [mikrotik]
+      auth: [public_v2]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: snmp_exporter:9116
+
+  # ---------------- CISCO ----------------
+  # Sửa IP thành IP thật của switch/router Cisco
+  - job_name: "snmp_cisco"
+    static_configs:
+      - targets:
+          - 10.0.97.2
+    metrics_path: /snmp
+    params:
+      module: [cisco]
+      auth: [public_v2]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: snmp_exporter:9116
+
+  # ---------------- FORTINET ----------------
+  # Sửa IP thành IP thật của firewall Fortinet (FortiGate)
+  - job_name: "snmp_fortinet"
+    static_configs:
+      - targets:
+          - 192.168.3.1
+    metrics_path: /snmp
+    params:
+      module: [fortinet]
+      auth: [public_v2]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: snmp_exporter:9116
+
+# ---------------- GRAFANA CLOUD ----------------
+# Đẩy toàn bộ dữ liệu SNMP thu thập được lên Grafana Cloud
+remote_write:
+  - url: "https://prometheus-prod-37-prod-ap-southeast-1.grafana.net/api/v1/push"
+    basic_auth:
+      username: "2973578"
+      password: "glc_eyJvIjoiMTY2NzY1MiIsIm4iOiJzdGFjay0xNTI0Njc1LWhtLXdyaXRlLWhvYW5nMTIzIiwiayI6IjJreTE3OUpiVW9aMzVPYm9leUI2NDg3RSIsIm0iOnsiciI6InByb2QtYXAtc291dGhlYXN0LTEifX0="
